@@ -64,6 +64,7 @@ const IssueBookModal: React.FC<IssueBookModalProps> = ({ onClose, onSave }) => {
               labelField="title"
               searchFields={['title', 'author', 'isbn']}
               required
+              onlyAvailableBooks
             />
           </div>
 

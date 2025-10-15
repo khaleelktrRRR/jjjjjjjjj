@@ -1,31 +1,34 @@
 import React, { useState } from 'react';
 import { User, Lock, ArrowLeft } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface LoginFormProps {
-  onLogin: () => void;
   onReturnHome: () => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onReturnHome }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onReturnHome }) => {
   const [credentials, setCredentials] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
-    // Simple demo authentication
-    setTimeout(() => {
-      if (credentials.username === 'admin' && credentials.password === 'admin') {
-        onLogin();
-      } else {
-        alert('Invalid credentials. Use admin/admin for demo.');
-      }
-      setLoading(false);
-    }, 1000);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    });
+
+    if (error) {
+      setError(error.message);
+    }
+    // onAuthStateChange in App.tsx will handle the view change upon successful login
+    setLoading(false);
   };
 
   return (
@@ -39,26 +42,32 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onReturnHome }) => {
             Muhimmath Library Management System
           </p>
           <p className="mt-4 text-center text-xs text-gray-500">
-            Demo credentials: admin / admin
+            Please use the credentials for an admin user from your Supabase project.
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+              {error}
+            </div>
+          )}
           <div className="space-y-4">
             <div>
-              <label htmlFor="username" className="sr-only">
-                Username
+              <label htmlFor="email" className="sr-only">
+                Email
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
-                  id="username"
-                  name="username"
-                  type="text"
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
                   required
                   className="pl-10 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm"
-                  placeholder="Username"
-                  value={credentials.username}
-                  onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+                  placeholder="Email address"
+                  value={credentials.email}
+                  onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                 />
               </div>
             </div>
@@ -72,6 +81,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onReturnHome }) => {
                   id="password"
                   name="password"
                   type="password"
+                  autoComplete="current-password"
                   required
                   className="pl-10 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm"
                   placeholder="Password"

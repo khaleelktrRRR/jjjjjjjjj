@@ -1,5 +1,5 @@
 import React from 'react';
-import Select from 'react-select';
+import Select from 'react-select/async';
 import { supabase } from '../lib/supabase';
 
 interface SearchableSelectProps {
@@ -10,6 +10,7 @@ interface SearchableSelectProps {
   labelField: string;
   searchFields: string[];
   required?: boolean;
+  onlyAvailableBooks?: boolean;
 }
 
 const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -19,15 +20,20 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   tableName,
   labelField,
   searchFields,
-  required
+  required,
+  onlyAvailableBooks,
 }) => {
   const loadOptions = async (inputValue: string) => {
-    if (inputValue.length < 2) return [];
+    let query = supabase.from(tableName).select('*');
 
-    let query = supabase.from(tableName).select(`id, ${labelField}`);
-    
-    const searchFilters = searchFields.map(field => `${field}.ilike.%${inputValue}%`).join(',');
-    query = query.or(searchFilters);
+    if (inputValue) {
+      const searchFilters = searchFields.map(field => `${field}.ilike.%${inputValue}%`).join(',');
+      query = query.or(searchFilters);
+    }
+
+    if (tableName === 'books' && onlyAvailableBooks) {
+      query = query.gt('available_copies', 0);
+    }
 
     const { data, error } = await query.limit(20);
 
@@ -45,14 +51,16 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
   return (
     <Select
+      cacheOptions
+      defaultOptions
       value={value}
       onChange={onChange}
       loadOptions={loadOptions}
       isClearable
       placeholder={placeholder}
       required={required}
-      noOptionsMessage={({ inputValue }) => 
-        inputValue.length < 2 ? 'Type at least 2 characters to search' : 'No results found'
+      noOptionsMessage={({ inputValue }) =>
+        !inputValue ? 'No options available' : 'No results found'
       }
       loadingMessage={() => 'Searching...'}
       styles={{
